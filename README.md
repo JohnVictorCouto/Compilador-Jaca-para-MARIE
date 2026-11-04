@@ -81,14 +81,6 @@ O texto salvo em `.mas` pode ser aberto em um editor ou colado no MARIE.js. Mens
 java -jar target/jacacc-1.0-jar-with-dependencies.jar --help
 ```
 
-### REPL do interpretador
-
-Sem argumentos, o programa inicia o REPL:
-
-```bash
-java -jar target/jacacc-1.0-jar-with-dependencies.jar
-```
-
 Digite um bloco de comandos e finalize com uma linha vazia. Digite `exit` para encerrar.
 
 ## Como usar o assembly no MARIE.js
