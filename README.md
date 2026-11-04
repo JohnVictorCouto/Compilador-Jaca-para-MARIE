@@ -1,8 +1,6 @@
 # Compilador Jaca para MARIE
 
-Projeto acadêmico da disciplina ECM253 — Linguagens Formais, Autômatos e Compiladores. O programa lê uma fonte Jaca, constrói a AST com JFlex e Java CUP e traduz essa árvore para assembly da máquina didática MARIE.
-
-O projeto-base também é preservado como interpretador. Assim, a mesma linguagem pode ser interpretada para comparação ou compilada para execução no simulador MARIE.js.
+O programa lê uma fonte Jaca, constrói a AST com JFlex e Java CUP e traduz essa árvore para assembly da máquina didática MARIE. O projeto-base também é preservado como interpretador. Assim, a mesma linguagem pode ser interpretada para comparação ou compilada para execução no simulador MARIE.js.
 
 ## Visão geral
 
@@ -137,7 +135,7 @@ Comentários de fonte Jaca começam com `#` e vão até o fim da linha.
 | --- | --- |
 | `src/main/jflex/scanner.jflex` | Converte caracteres Jaca em tokens, identificadores e números. |
 | `src/main/cup/parser.cup` | Define a gramática e cria nós da AST; também permite blocos vazios. |
-| `src/main/java/parser/Main.java` | Interpreta argumentos, abre arquivos, mantém o REPL e escolhe interpretação ou compilação. |
+| `src/main/java/parser/Main.java` | Interpreta argumentos, abre arquivos, e escolhe interpretação ou compilação. |
 | `src/main/java/parser/ast/ASTNode.java` | Define o contrato comum para nós visitáveis. |
 | `src/main/java/parser/ast/ASTVisitor.java` | Define os métodos que cada visitor implementa para comandos e expressões. |
 | `src/main/java/parser/ast/Interpreter.java` | Executa a AST na JVM e preserva a semântica preexistente. |
@@ -155,8 +153,6 @@ Comentários de fonte Jaca começam com `#` e vão até o fim da linha.
 4. Cada `visit` retorna assembly. Para expressões, o valor final fica no acumulador `AC`.
 5. `MarieContext` monta `ORG 100`, corpo, `HALT`, trap de divisão por zero quando necessário e declarações de dados.
 6. O resultado completo é impresso ou escrito no arquivo de saída.
-
-Não há um `Compiler` novo para cada operação da linguagem: a mesma instância visita os diferentes nós, enquanto o contexto compartilhado oferece nomes e endereços consistentes ao programa inteiro.
 
 ## Convenções de geração
 
@@ -230,9 +226,8 @@ Cada comparação deixa `1` quando verdadeira e `0` quando falsa. `SKIPCOND` pul
 
 ## Limites e diferenças entre o interpretador e MARIE
 
-MARIE implementa palavras de 16 bits em complemento de dois. O intervalo signed é `-32768` a `32767`.
-
-- Literais numéricos do Jaca são truncados em direção a zero, conforme a conversão para `int` indicada no roteiro ECM253. Por exemplo, `3.9` vira `3` e `-3.9` vira `-3`.
+- MARIE implementa palavras de 16 bits em complemento de dois. O intervalo signed é `-32768` a `32767`.
+- Literais numéricos do Jaca são truncados em direção a zero Por exemplo, `3.9` vira `3` e `-3.9` vira `-3`.
 - O literal truncado precisa caber no intervalo MARIE. `32768` isolado é rejeitado; `-32768` é aceito pelo tratamento do menos unário.
 - Resultados de operações aritméticas em runtime são palavras de 16 bits: overflow volta ao intervalo em complemento de dois. Por exemplo, `32767 + 1` resulta em `-32768`.
 - O interpretador Java trabalha com `Double` e pode diferir em frações, overflow e divisão. Use os exemplos inteiros para comparar as duas execuções.
@@ -317,7 +312,7 @@ jaca-marie/
 ├── examples/                         # Fontes Jaca e assembly demonstrativo
 ├── src/main/cup/parser.cup           # Gramática e ações que constroem a AST
 ├── src/main/jflex/scanner.jflex      # Especificação do scanner
-├── src/main/java/parser/Main.java    # CLI, parser, interpretador e REPL
+├── src/main/java/parser/Main.java    # CLI, parser, interpretador e compilador
 ├── src/main/java/parser/ast/
 │   ├── Interpreter.java              # Visitor de execução JVM preservado
 │   ├── MarieCompiler.java            # Visitor que gera assembly
@@ -326,21 +321,3 @@ jaca-marie/
 │   └── statement/                    # Nós de comando compartilhados
 └── src/test/java/parser/             # Testes JUnit e simulador auxiliar
 ```
-
-## Como estender
-
-1. Atualize a gramática em `src/main/cup/parser.cup` e o scanner em `src/main/jflex/scanner.jflex` se a sintaxe mudar.
-2. Crie ou atualize o nó AST e acrescente a assinatura correspondente a `ASTVisitor<T>`.
-3. Implemente a tradução no visitor `MarieCompiler`; mantenha a convenção de resultado no AC.
-4. Reserve constantes, variáveis, temporários e rótulos por meio de `MarieContext`.
-5. Acrescente teste de parsing e teste de execução no simulador auxiliar.
-6. Atualize os exemplos e esta documentação para refletir a semântica efetivamente implementada.
-
-## Referências dos materiais da disciplina
-
-- Marco Furlan, *ECM253 — Projeto: Compilador Jaca para Marie, Parte I*, outubro de 2026.
-- Marco Furlan, *ECM253 — Dicas para construir o tradutor Jaca-Marie*, 2026.
-- Linda Null e Julia Lobur, *Princípios básicos de arquitetura e organização de computadores*, capítulo 4 — MARIE.
-- Jason Nyugen, Saurabh Joshi e Eric Jiang, *Introduction to MARIE, A Basic CPU Simulator*, 2ª edição, 2016.
-
-Os materiais de referência descrevem a arquitetura e orientam a implementação; este README documenta a implementação presente neste projeto.
