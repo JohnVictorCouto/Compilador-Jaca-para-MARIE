@@ -1,0 +1,8 @@
+# Calcula o quociente inteiro de dezessete por cinco.
+print(17 / 5);
+# Calcula o resto da divisão positiva.
+print(17 % 5);
+# Calcula um quociente negativo com truncamento em direção a zero.
+print(-17 / 5);
+# Mantém o sinal do dividendo no resto negativo.
+print(-17 % 5);

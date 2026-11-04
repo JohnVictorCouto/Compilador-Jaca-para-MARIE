@@ -1,0 +1,9 @@
+# Inicializa o contador em um.
+i = 1;
+# Repete enquanto o contador não ultrapassar dez.
+while (i <= 10) {
+    # Exibe o valor atual.
+    print(i);
+    # Avança o contador para a próxima iteração.
+    i = i + 1;
+}

@@ -1,0 +1,13 @@
+# Inicializa n com o valor cujo fatorial será calculado.
+n = 5;
+# Inicializa o acumulador do fatorial.
+f = 1;
+# Repete até todos os fatores maiores que um serem multiplicados.
+while (n > 1) {
+    # Multiplica o resultado parcial pelo fator atual.
+    f = f * n;
+    # Reduz o próximo fator.
+    n = n - 1;
+}
+# Imprime o fatorial calculado.
+print(f);

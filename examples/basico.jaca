@@ -1,0 +1,6 @@
+# Atribui o valor inicial à variável x.
+x = 5;
+# Imprime o conteúdo de x.
+print(x);
+# Imprime uma expressão com precedência de multiplicação.
+print(1 + 2 * 3);

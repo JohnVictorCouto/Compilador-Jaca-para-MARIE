@@ -1,0 +1,4 @@
+# Lê um valor inteiro do simulador MARIE.
+read(valor);
+# Imprime o valor que acabou de ser lido.
+print(valor);

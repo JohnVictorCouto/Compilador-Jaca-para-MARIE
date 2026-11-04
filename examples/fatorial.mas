@@ -1,0 +1,95 @@
+ORG 100	/ inicio do programa Jaca
+	/ inicio do codigo gerado
+	LOAD C0	/ carrega a constante 5
+	STORE V0	/ atribui o resultado a n
+	LOAD C1	/ carrega a constante 1
+	STORE V1	/ atribui o resultado a f
+L0,	CLEAR	/ inicio do teste do while
+	LOAD C1	/ carrega a constante 1
+	STORE T0	/ guarda o lado direito da comparacao
+	LOAD V0	/ carrega a variavel n
+	STORE T1	/ guarda o lado esquerdo da comparacao
+	LOAD T1	/ testa o sinal do lado esquerdo
+	SKIPCOND 000	/ detecta lado esquerdo negativo
+	JUMP L6	/ seleciona lado esquerdo nao negativo
+	JUMP L5	/ seleciona lado esquerdo negativo
+L5,	LOAD T0	/ testa o lado direito
+	SKIPCOND 000	/ detecta lado direito negativo
+	JUMP L8	/ resolve sinais opostos
+	JUMP L7	/ compara operandos de mesmo sinal
+L6,	LOAD T0	/ testa o sinal do lado direito
+	SKIPCOND 000	/ detecta lado direito negativo
+	JUMP L7	/ compara operandos de mesmo sinal
+	JUMP L9	/ resolve sinais opostos
+L8,	JUMP L3	/ resolve a ordem entre sinais diferentes
+L9,	JUMP L2	/ resolve a ordem entre sinais diferentes
+L7,	LOAD T1	/ carrega o lado esquerdo
+	SUBT T0	/ calcula a diferenca com sinais iguais
+	SKIPCOND 800	/ avalia a comparacao com sinais iguais
+	JUMP L3	/ trata SKIPCOND sem pulo
+	JUMP L2	/ trata SKIPCOND com pulo
+L2,	LOAD C1	/ resultado verdadeiro
+	STORE T2	/ salva verdadeiro como um
+	JUMP L4	/ evita sobrescrever o resultado verdadeiro
+L3,	CLEAR	/ resultado falso
+	STORE T2	/ salva falso como zero
+L4,	LOAD T2	/ deixa o booleano no acumulador
+	SKIPCOND 800	/ continua enquanto a condicao vale um
+	JUMP L1	/ sai do while quando a condicao e falsa
+	LOAD V0	/ carrega a variavel n
+	STORE T3	/ guarda o multiplicador como contador
+	LOAD V1	/ carrega a variavel f
+	STORE T4	/ guarda o multiplicando
+	CLEAR	/ inicializa o produto em zero
+	STORE T5	/ salva o produto parcial
+	LOAD T3	/ testa o sinal do multiplicador
+	SKIPCOND 000	/ detecta multiplicador negativo
+	JUMP L10	/ seleciona o contador nao negativo
+	JUMP L11	/ seleciona o contador negativo
+L10,	LOAD T3	/ testa o contador positivo
+	SKIPCOND 800	/ continua enquanto o contador for positivo
+	JUMP L12	/ encerra o caso nao negativo em zero
+	LOAD T5	/ carrega o produto parcial
+	ADD T4	/ soma uma copia do multiplicando
+	STORE T5	/ salva o novo produto
+	LOAD T3	/ carrega o contador positivo
+	SUBT C1	/ reduz o contador em um
+	STORE T3	/ salva o contador atualizado
+	JUMP L10	/ repete a soma
+L11,	LOAD T3	/ testa o contador negativo
+	SKIPCOND 000	/ continua enquanto o contador for negativo
+	JUMP L12	/ encerra o caso negativo em zero
+	LOAD T5	/ carrega o produto parcial
+	CLEAR	/ prepara zero para inverter o multiplicando
+	SUBT T4	/ calcula o oposto do multiplicando
+	ADD T5	/ acumula o fator negativo
+	STORE T5	/ salva o novo produto
+	LOAD T3	/ carrega o contador negativo
+	ADD C1	/ aumenta o contador negativo em um
+	STORE T3	/ salva o contador atualizado
+	JUMP L11	/ repete a soma negativa
+L12,	LOAD T5	/ deixa o produto no acumulador
+	STORE V1	/ atribui o resultado a f
+	LOAD C1	/ carrega a constante 1
+	STORE T6	/ guarda o operando direito
+	LOAD V0	/ carrega a variavel n
+	SUBT T6	/ subtrai direita de esquerda
+	STORE V0	/ atribui o resultado a n
+	JUMP L0	/ reavalia a condicao do while
+L1,	CLEAR	/ fim do while
+	LOAD V1	/ carrega a variavel f
+	OUTPUT	/ imprime o valor do acumulador
+	HALT	/ fim normal do programa
+
+	/ inicio da secao de dados
+C0,	DEC 5	/ constante 5
+V0,	DEC 0	/ variavel n
+C1,	DEC 1	/ constante 1
+V1,	DEC 0	/ variavel f
+T0,	DEC 0	/ temporario de compilacao
+T1,	DEC 0	/ temporario de compilacao
+T2,	DEC 0	/ temporario de compilacao
+T3,	DEC 0	/ temporario de compilacao
+T4,	DEC 0	/ temporario de compilacao
+T5,	DEC 0	/ temporario de compilacao
+T6,	DEC 0	/ temporario de compilacao

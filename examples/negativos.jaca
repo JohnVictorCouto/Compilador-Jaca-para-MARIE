@@ -1,0 +1,6 @@
+# Multiplica um número negativo por um positivo.
+print(-3 * 4);
+# Multiplica um número positivo por um negativo.
+print(3 * -4);
+# Multiplica dois números negativos.
+print(-3 * -4);

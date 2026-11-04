@@ -1,0 +1,12 @@
+# Verifica a relação menor que.
+print(3 < 5);
+# Verifica a relação maior que.
+print(3 > 5);
+# Verifica igualdade de números.
+print(3 == 3);
+# Verifica diferença de números.
+print(3 != 3);
+# Verifica maior ou igual.
+print(3 >= 3);
+# Verifica menor ou igual.
+print(2 <= 3);

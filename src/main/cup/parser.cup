@@ -1,0 +1,302 @@
+// Especificação do parser CUP
+package parser;
+
+import java_cup.runtime.*;
+import java.util.HashMap;
+
+import parser.ast.*;
+import parser.ast.statement.*;
+import parser.ast.expression.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+parser code {:
+
+    // Variável global do parser para armazenar a raiz da árvore
+    private parser.ast.ASTNode astRoot = null;
+    // Conta erros recuperáveis para impedir compilação parcial de uma fonte inválida.
+    private int syntaxErrorCount = 0;
+
+    // Método público para o Main conseguir resgatar a árvore depois
+    public parser.ast.ASTNode getAST() {
+        return this.astRoot;
+    }
+    // Expõe erros recuperáveis ao modo de compilação e interpretação da CLI.
+    public int getSyntaxErrorCount() {
+        return syntaxErrorCount;
+    }
+    private String lastExpectedSymbols = "";
+
+    private String expectedSymbols() {
+        String expected = expected_token_ids().stream()
+                .map(this::symbl_name_from_id)
+                .collect(Collectors.joining(", "));
+        if (!expected.isEmpty()) {
+            lastExpectedSymbols = expected;
+            return expected;
+        }
+        return lastExpectedSymbols.isEmpty() ? "indisponíveis" : lastExpectedSymbols;
+    }
+
+    @Override
+    public void report_error(String message, Object info) {
+        // Marca o erro antes de exibir seu contexto para que a CLI possa falhar.
+        syntaxErrorCount++;
+        Symbol sym = (Symbol) info;
+        if (sym != null)
+            System.err.println("Erro de sintaxe próximo de \"" + sym.value +
+                            "\" na linha " + (sym.left + 1) + ", coluna " + 
+                               (sym.right + 1) +
+                            ": " + message + "; símbolos esperados: " + 
+                               expectedSymbols());
+        else
+            System.err.println("Erro de sintaxe: " + message +
+                            "; símbolos esperados: " + expectedSymbols());
+    }
+
+    @Override
+    public void report_fatal_error(String message, Object info) throws Exception {
+        report_error(message, info);
+        throw new Exception("Erro fatal de sintaxe: " + message +
+                            "; símbolos esperados: " + expectedSymbols());
+    }
+
+    @Override
+    public void syntax_error(Symbol sym) {
+        // Conta erros reportados pelo mecanismo de recuperação do CUP.
+        syntaxErrorCount++;
+        System.err.println("Erro de sintaxe inesperado em \"" + sym.value +
+                        "\" na linha " + (sym.left + 1) + ", coluna " + (sym.right + 1) +
+                        "; símbolos esperados: " + expectedSymbols());
+    }
+:}
+
+// Definição dos terminais
+terminal    IF, THEN, ELSE, WHILE;
+terminal    PRINT, READ;
+terminal    PLUS, MINUS, TIMES, DIV, MOD, UMINUS;
+terminal    EQ, NEQ, GT, LT, GEQ, LEQ;
+terminal    ASSIGN, SEMI, LPARAM, RPARAM, LBRACE,RBRACE;
+terminal Double     NUMBER;
+terminal String     ID;
+
+// Definição dos não terminais
+non terminal ASTNode        program, statement;
+non terminal BlockNode      statement_list, block_stmt;
+non terminal AssignNode     assign_stmt;
+non terminal IfNode         if_stmt;
+non terminal PrintNode      print_stmt;
+non terminal ReadNode       read_stmt;
+non terminal WhileNode      while_stmt;
+non terminal ASTNode        null_stmt;
+non terminal ExprNode       expression;
+
+// Precedência e associatividade dos operadores
+precedence nonassoc IF;
+precedence nonassoc ELSE;
+precedence nonassoc ASSIGN;
+precedence left EQ, NEQ, GT, LT, GEQ, LEQ;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIV, MOD;
+precedence right UMINUS;
+
+// Regras da gramática
+//program = statement_list,EOF
+//    | EOF;
+program ::= statement_list:sl
+    {: 
+        astRoot = sl; // Guarda a raiz do programa na variável do parser
+        RESULT = sl; 
+    :}
+    | /* vazio (arquivo ou entrada 100% vazio) */
+    {:
+        BlockNode emptyRoot = new BlockNode(new ArrayList<>());
+        astRoot = emptyRoot;
+        RESULT = emptyRoot;
+    :}
+    ;
+// statement_list = statement,{statement};
+statement_list ::= statement_list:sl statement:s
+    {: 
+        // Só adiciona na árvore se o comando NÃO for nulo
+        if (s != null) {
+            sl.statements.add(s); 
+        }
+        RESULT = sl; 
+    :}
+    | statement:s
+    {: 
+        List<ASTNode> list = new ArrayList<>();
+        if (s != null) {
+            list.add(s);
+        }
+        RESULT = new BlockNode(list);
+    :}
+    | error
+    ;
+//statement = assign_stmt
+//          | if_stmt
+//          | while_stmt
+//          | print_stmt
+//          | read_stmt
+//          | block_stmt
+//          | null_stmt;
+statement ::= assign_stmt:a
+    {: 
+        RESULT = a; 
+    :}
+    | if_stmt:i
+    {: 
+        RESULT = i; 
+    :}
+    | while_stmt:w
+    {:
+        RESULT = w;
+    :}
+    | print_stmt:p
+    {: 
+        RESULT = p; 
+    :}
+    | read_stmt:r
+    {: 
+        RESULT = r; 
+    :}
+    | block_stmt:b
+    {: 
+        RESULT = b; 
+    :}
+    | null_stmt:n
+    {: 
+        RESULT = n; 
+    :}
+    ;
+// assign_stmt = ID,"=",expression,";";
+assign_stmt ::= ID:id ASSIGN expression:e SEMI
+    {:
+        RESULT = new AssignNode(id, e); 
+    :}
+    ;
+// if_stmt = "if","(",expression,")","then",block_stmt,["else",block_stmt];
+if_stmt ::= IF LPARAM expression:e RPARAM THEN block_stmt:tb
+    {: 
+        RESULT = new IfNode(e, tb, null); 
+    :}
+    | IF LPARAM expression:e RPARAM THEN block_stmt:tb ELSE block_stmt:eb
+    {: 
+        RESULT = new IfNode(e, tb, eb); 
+    :}
+    ;
+// while_stmt = "while","(",expression,")",block_stmt;
+while_stmt ::= WHILE LPARAM expression:e RPARAM block_stmt:b
+    {:
+        RESULT = new WhileNode(e, b); 
+    :}
+    ;
+// print_stmt = print,"(",expression,")",";";
+print_stmt ::= PRINT LPARAM expression:e RPARAM SEMI
+    {: 
+        RESULT = new PrintNode(e); 
+    :}
+    ;
+// read_stmt = read,"(",expression,")",";";
+read_stmt ::= READ LPARAM ID:id RPARAM SEMI
+    {:
+        RESULT = new ReadNode(id); 
+    :}
+    ;
+// block_stmt = "{",statement_list,"}";
+block_stmt ::= LBRACE statement_list:sl RBRACE
+    {: 
+        RESULT = sl; 
+    :}
+    | LBRACE RBRACE
+    {:
+        // Permite blocos vazios usados nos casos-limite do tradutor.
+        RESULT = new BlockNode(new ArrayList<>());
+    :}
+    ;
+// null_stmt = ";";
+null_stmt ::= SEMI
+    {: 
+        RESULT = null;
+    :}
+    ;
+// expression = expression,"==",expression;
+//          | expression,"+",expression;
+//          | expression,"-",expression;
+//          | expression,"*",expression;
+//          | expression,"/",expression;
+//          | expression,"%",expression;
+//          | expression,"!=",expression;
+//          | expression,">",expression;
+//          | expression,"<",expression;
+//          | expression,">=",expression;
+//          | expression,"<=",expression;
+//          | ID;
+//          | NUMBER;
+//          | "(" expression ")";
+//          | "-" expression;
+expression ::= 
+    expression:e1 EQ expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.EQ, e1, e2); 
+    :}
+    | expression:e1 PLUS expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.PLUS, e1, e2); 
+    :}
+    | expression:e1 MINUS expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.MINUS, e1, e2); 
+    :}
+    | expression:e1 TIMES expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.TIMES, e1, e2); 
+    :}
+    | expression:e1 DIV expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.DIV, e1, e2); 
+    :}
+    | expression:e1 MOD expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.MOD, e1, e2); 
+    :}
+    | expression:e1 NEQ expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.NEQ, e1, e2); 
+    :}
+    | expression:e1 GT expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.GT, e1, e2); 
+    :}
+    | expression:e1 LT expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.LT, e1, e2); 
+    :}
+    | expression:e1 GEQ expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.GEQ, e1, e2); 
+    :}
+    | expression:e1 LEQ expression:e2
+    {:
+        RESULT = new BinaryOpNode(sym.LEQ, e1, e2); 
+    :}
+    | ID:id
+    {: 
+        RESULT = new VariableNode(id); 
+    :}
+    | NUMBER:n
+    {: 
+        RESULT = new NumberNode(n);
+    :}
+    | LPARAM expression:e RPARAM
+    {:
+        RESULT = e; 
+    :}
+    | MINUS expression:e
+    {:
+        RESULT = new UnaryMinusNode(e); 
+    :} %prec UMINUS
+    ;

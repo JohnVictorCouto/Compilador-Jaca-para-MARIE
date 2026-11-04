@@ -1,0 +1,8 @@
+# Testa uma condição falsa e entra no ramo else.
+if (1 > 2) then {
+    # Este valor não é impresso.
+    print(1);
+} else {
+    # Este valor é impresso.
+    print(2);
+}
