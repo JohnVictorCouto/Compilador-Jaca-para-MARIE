@@ -1,7 +1,5 @@
 # Compilador Jaca para MARIE
 
-O programa lê uma fonte Jaca, constrói a AST com JFlex e Java CUP e traduz essa árvore para assembly da máquina didática MARIE. O projeto-base também é preservado como interpretador. Assim, a mesma linguagem pode ser interpretada para comparação ou compilada para execução no simulador MARIE.js.
-
 ## Visão geral
 
 ```mermaid
@@ -81,6 +79,14 @@ O texto salvo em `.mas` pode ser aberto em um editor ou colado no MARIE.js. Mens
 java -jar target/jacacc-1.0-jar-with-dependencies.jar --help
 ```
 
+### REPL do interpretador
+
+Sem argumentos, o programa inicia o REPL:
+
+```bash
+java -jar target/jacacc-1.0-jar-with-dependencies.jar
+```
+
 Digite um bloco de comandos e finalize com uma linha vazia. Digite `exit` para encerrar.
 
 ## Como usar o assembly no MARIE.js
@@ -127,7 +133,7 @@ Comentários de fonte Jaca começam com `#` e vão até o fim da linha.
 | --- | --- |
 | `src/main/jflex/scanner.jflex` | Converte caracteres Jaca em tokens, identificadores e números. |
 | `src/main/cup/parser.cup` | Define a gramática e cria nós da AST; também permite blocos vazios. |
-| `src/main/java/parser/Main.java` | Interpreta argumentos, abre arquivos, e escolhe interpretação ou compilação. |
+| `src/main/java/parser/Main.java` | Interpreta argumentos, abre arquivos, mantém o REPL e escolhe interpretação ou compilação. |
 | `src/main/java/parser/ast/ASTNode.java` | Define o contrato comum para nós visitáveis. |
 | `src/main/java/parser/ast/ASTVisitor.java` | Define os métodos que cada visitor implementa para comandos e expressões. |
 | `src/main/java/parser/ast/Interpreter.java` | Executa a AST na JVM e preserva a semântica preexistente. |
@@ -219,7 +225,7 @@ Cada comparação deixa `1` quando verdadeira e `0` quando falsa. `SKIPCOND` pul
 ## Limites e diferenças entre o interpretador e MARIE
 
 - MARIE implementa palavras de 16 bits em complemento de dois. O intervalo signed é `-32768` a `32767`.
-- Literais numéricos do Jaca são truncados em direção a zero Por exemplo, `3.9` vira `3` e `-3.9` vira `-3`.
+- Literais numéricos do Jaca são truncados em direção a zero, por exemplo, `3.9` vira `3` e `-3.9` vira `-3`.
 - O literal truncado precisa caber no intervalo MARIE. `32768` isolado é rejeitado; `-32768` é aceito pelo tratamento do menos unário.
 - Resultados de operações aritméticas em runtime são palavras de 16 bits: overflow volta ao intervalo em complemento de dois. Por exemplo, `32767 + 1` resulta em `-32768`.
 - O interpretador Java trabalha com `Double` e pode diferir em frações, overflow e divisão. Use os exemplos inteiros para comparar as duas execuções.
@@ -304,7 +310,7 @@ jaca-marie/
 ├── examples/                         # Fontes Jaca e assembly demonstrativo
 ├── src/main/cup/parser.cup           # Gramática e ações que constroem a AST
 ├── src/main/jflex/scanner.jflex      # Especificação do scanner
-├── src/main/java/parser/Main.java    # CLI, parser, interpretador e compilador
+├── src/main/java/parser/Main.java    # CLI, parser, interpretador e REPL
 ├── src/main/java/parser/ast/
 │   ├── Interpreter.java              # Visitor de execução JVM preservado
 │   ├── MarieCompiler.java            # Visitor que gera assembly
@@ -313,3 +319,5 @@ jaca-marie/
 │   └── statement/                    # Nós de comando compartilhados
 └── src/test/java/parser/             # Testes JUnit e simulador auxiliar
 ```
+
+Os materiais de referência descrevem a arquitetura e orientam a implementação; este README documenta a implementação presente neste projeto.
