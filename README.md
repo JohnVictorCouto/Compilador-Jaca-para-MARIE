@@ -319,5 +319,3 @@ jaca-marie/
 │   └── statement/                    # Nós de comando compartilhados
 └── src/test/java/parser/             # Testes JUnit e simulador auxiliar
 ```
-
-Os materiais de referência descrevem a arquitetura e orientam a implementação; este README documenta a implementação presente neste projeto.
