@@ -1,302 +1,302 @@
-// Especificação do parser CUP
-package parser;
+// Especificação do parser CUP, responsável por transformar tokens em uma árvore sintática.
+package parser; // Define o pacote Java ao qual as classes geradas pelo CUP pertencem.
 
-import java_cup.runtime.*;
-import java.util.HashMap;
+import java_cup.runtime.*; // Importa os tipos de execução e os símbolos usados pelo CUP.
+import java.util.HashMap; // Disponibiliza mapas; importação mantida para compatibilidade com o parser.
 
-import parser.ast.*;
-import parser.ast.statement.*;
-import parser.ast.expression.*;
+import parser.ast.*; // Importa os nós base da árvore sintática.
+import parser.ast.statement.*; // Importa os nós que representam comandos.
+import parser.ast.expression.*; // Importa os nós que representam expressões.
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.ArrayList; // Permite criar listas mutáveis para os comandos dos blocos.
+import java.util.List; // Fornece a interface de lista usada pela árvore.
+import java.util.stream.Collectors; // Permite formatar a lista de símbolos esperados.
 
-parser code {:
+parser code {: // Inicia o código Java adicional incluído na classe do parser.
 
     // Variável global do parser para armazenar a raiz da árvore
-    private parser.ast.ASTNode astRoot = null;
+    private parser.ast.ASTNode astRoot = null; // Guarda a raiz da árvore depois da análise.
     // Conta erros recuperáveis para impedir compilação parcial de uma fonte inválida.
-    private int syntaxErrorCount = 0;
+    private int syntaxErrorCount = 0; // Registra erros de sintaxe encontrados pelo parser.
 
     // Método público para o Main conseguir resgatar a árvore depois
-    public parser.ast.ASTNode getAST() {
-        return this.astRoot;
-    }
+    public parser.ast.ASTNode getAST() { // Expõe a árvore sintática construída.
+        return this.astRoot; // Retorna a raiz atualmente armazenada.
+    } // Encerra o método que retorna a árvore.
     // Expõe erros recuperáveis ao modo de compilação e interpretação da CLI.
-    public int getSyntaxErrorCount() {
-        return syntaxErrorCount;
-    }
-    private String lastExpectedSymbols = "";
+    public int getSyntaxErrorCount() { // Expõe a quantidade de erros sintáticos.
+        return syntaxErrorCount; // Retorna a contagem acumulada.
+    } // Encerra o método que retorna a contagem de erros.
+    private String lastExpectedSymbols = ""; // Preserva o último conjunto conhecido de símbolos esperados.
 
-    private String expectedSymbols() {
-        String expected = expected_token_ids().stream()
-                .map(this::symbl_name_from_id)
-                .collect(Collectors.joining(", "));
-        if (!expected.isEmpty()) {
-            lastExpectedSymbols = expected;
-            return expected;
-        }
-        return lastExpectedSymbols.isEmpty() ? "indisponíveis" : lastExpectedSymbols;
-    }
+    private String expectedSymbols() { // Constrói uma mensagem com os tokens aceitos naquele ponto.
+        String expected = expected_token_ids().stream() // Obtém os identificadores de tokens esperados.
+                .map(this::symbl_name_from_id) // Converte identificadores de token em nomes legíveis.
+                .collect(Collectors.joining(", ")); // Junta os nomes em uma única lista textual.
+        if (!expected.isEmpty()) { // Atualiza o histórico quando o CUP fornece expectativas.
+            lastExpectedSymbols = expected; // Armazena os símbolos para mensagens subsequentes.
+            return expected; // Retorna a lista atual de símbolos esperados.
+        } // Encerra a verificação de símbolos disponíveis.
+        return lastExpectedSymbols.isEmpty() ? "indisponíveis" : lastExpectedSymbols; // Usa o histórico ou informa indisponibilidade.
+    } // Encerra a montagem da lista de símbolos esperados.
 
-    @Override
-    public void report_error(String message, Object info) {
+    @Override // Indica que o método substitui a implementação da classe base do CUP.
+    public void report_error(String message, Object info) { // Trata um erro sintático recuperável.
         // Marca o erro antes de exibir seu contexto para que a CLI possa falhar.
-        syntaxErrorCount++;
-        Symbol sym = (Symbol) info;
-        if (sym != null)
-            System.err.println("Erro de sintaxe próximo de \"" + sym.value +
-                            "\" na linha " + (sym.left + 1) + ", coluna " + 
-                               (sym.right + 1) +
-                            ": " + message + "; símbolos esperados: " + 
-                               expectedSymbols());
-        else
-            System.err.println("Erro de sintaxe: " + message +
-                            "; símbolos esperados: " + expectedSymbols());
-    }
+        syntaxErrorCount++; // Incrementa a contagem de erros recuperáveis.
+        Symbol sym = (Symbol) info; // Interpreta as informações recebidas como símbolo do CUP.
+        if (sym != null) // Verifica se há posição e valor do token associado ao erro.
+            System.err.println("Erro de sintaxe próximo de \"" + sym.value + // Inicia a mensagem com o valor inesperado.
+                            "\" na linha " + (sym.left + 1) + ", coluna " + // Acrescenta a posição em base um.
+                               (sym.right + 1) + // Completa a coluna do token.
+                            ": " + message + "; símbolos esperados: " + // Acrescenta a causa e o rótulo da expectativa.
+                               expectedSymbols()); // Informa os símbolos que poderiam aparecer.
+        else // Trata erros sem um símbolo de origem disponível.
+            System.err.println("Erro de sintaxe: " + message + // Exibe a mensagem sem localização.
+                            "; símbolos esperados: " + expectedSymbols()); // Acrescenta os símbolos esperados.
+    } // Encerra o tratamento de erros recuperáveis.
 
-    @Override
-    public void report_fatal_error(String message, Object info) throws Exception {
-        report_error(message, info);
-        throw new Exception("Erro fatal de sintaxe: " + message +
-                            "; símbolos esperados: " + expectedSymbols());
-    }
+    @Override // Indica que o método substitui a implementação da classe base do CUP.
+    public void report_fatal_error(String message, Object info) throws Exception { // Trata erros que impedem a continuação.
+        report_error(message, info); // Reutiliza o relatório detalhado do erro.
+        throw new Exception("Erro fatal de sintaxe: " + message + // Interrompe a análise com uma exceção explícita.
+                            "; símbolos esperados: " + expectedSymbols()); // Inclui os símbolos esperados na exceção.
+    } // Encerra o tratamento de erros fatais.
 
-    @Override
-    public void syntax_error(Symbol sym) {
+    @Override // Indica que o método substitui a implementação da classe base do CUP.
+    public void syntax_error(Symbol sym) { // Trata tokens inesperados detectados pelo parser.
         // Conta erros reportados pelo mecanismo de recuperação do CUP.
-        syntaxErrorCount++;
-        System.err.println("Erro de sintaxe inesperado em \"" + sym.value +
-                        "\" na linha " + (sym.left + 1) + ", coluna " + (sym.right + 1) +
-                        "; símbolos esperados: " + expectedSymbols());
-    }
-:}
+        syntaxErrorCount++; // Incrementa a contagem de erros de sintaxe.
+        System.err.println("Erro de sintaxe inesperado em \"" + sym.value + // Inicia a mensagem com o token inesperado.
+                        "\" na linha " + (sym.left + 1) + ", coluna " + (sym.right + 1) + // Informa a localização em base um.
+                        "; símbolos esperados: " + expectedSymbols()); // Informa os tokens esperados.
+    } // Encerra o tratamento de tokens inesperados.
+:} // Finaliza o código Java personalizado do parser.
 
-// Definição dos terminais
-terminal    IF, THEN, ELSE, WHILE;
-terminal    PRINT, READ;
-terminal    PLUS, MINUS, TIMES, DIV, MOD, UMINUS;
-terminal    EQ, NEQ, GT, LT, GEQ, LEQ;
-terminal    ASSIGN, SEMI, LPARAM, RPARAM, LBRACE,RBRACE;
-terminal Double     NUMBER;
-terminal String     ID;
+// Definição dos terminais reconhecidos pelo analisador léxico.
+terminal    IF, THEN, ELSE, WHILE; // Declara os tokens das estruturas condicionais e de repetição.
+terminal    PRINT, READ; // Declara os tokens de entrada e saída.
+terminal    PLUS, MINUS, TIMES, DIV, MOD, UMINUS; // Declara operadores aritméticos e o menos unário.
+terminal    EQ, NEQ, GT, LT, GEQ, LEQ; // Declara operadores de comparação.
+terminal    ASSIGN, SEMI, LPARAM, RPARAM, LBRACE,RBRACE; // Declara atribuição, delimitadores e pontuação.
+terminal Double     NUMBER; // Declara números com valor associado do tipo Double.
+terminal String     ID; // Declara identificadores com valor associado do tipo String.
 
-// Definição dos não terminais
-non terminal ASTNode        program, statement;
-non terminal BlockNode      statement_list, block_stmt;
-non terminal AssignNode     assign_stmt;
-non terminal IfNode         if_stmt;
-non terminal PrintNode      print_stmt;
-non terminal ReadNode       read_stmt;
-non terminal WhileNode      while_stmt;
-non terminal ASTNode        null_stmt;
-non terminal ExprNode       expression;
+// Definição dos não terminais usados para compor a gramática e a AST.
+non terminal ASTNode        program, statement; // Declara o programa completo e um comando.
+non terminal BlockNode      statement_list, block_stmt; // Declara listas de comandos e blocos.
+non terminal AssignNode     assign_stmt; // Declara comandos de atribuição.
+non terminal IfNode         if_stmt; // Declara comandos condicionais.
+non terminal PrintNode      print_stmt; // Declara comandos de impressão.
+non terminal ReadNode       read_stmt; // Declara comandos de leitura.
+non terminal WhileNode      while_stmt; // Declara comandos de repetição.
+non terminal ASTNode        null_stmt; // Declara comandos vazios.
+non terminal ExprNode       expression; // Declara expressões que produzem valores.
 
-// Precedência e associatividade dos operadores
-precedence nonassoc IF;
-precedence nonassoc ELSE;
-precedence nonassoc ASSIGN;
-precedence left EQ, NEQ, GT, LT, GEQ, LEQ;
-precedence left PLUS, MINUS;
-precedence left TIMES, DIV, MOD;
-precedence right UMINUS;
+// Precedência e associatividade dos operadores.
+precedence nonassoc IF; // Define precedência condicional auxiliar para resolver o caso sem else.
+precedence nonassoc ELSE; // Define a associação não encadeável do else.
+precedence nonassoc ASSIGN; // Define a associação não encadeável da atribuição.
+precedence left EQ, NEQ, GT, LT, GEQ, LEQ; // Agrupa operadores relacionais com associação à esquerda.
+precedence left PLUS, MINUS; // Define a precedência dos operadores de soma e subtração.
+precedence left TIMES, DIV, MOD; // Define a precedência dos operadores de multiplicação, divisão e resto.
+precedence right UMINUS; // Dá precedência alta e associação à direita ao menos unário.
 
-// Regras da gramática
-//program = statement_list,EOF
-//    | EOF;
-program ::= statement_list:sl
-    {: 
-        astRoot = sl; // Guarda a raiz do programa na variável do parser
-        RESULT = sl; 
-    :}
-    | /* vazio (arquivo ou entrada 100% vazio) */
-    {:
-        BlockNode emptyRoot = new BlockNode(new ArrayList<>());
-        astRoot = emptyRoot;
-        RESULT = emptyRoot;
-    :}
-    ;
-// statement_list = statement,{statement};
-statement_list ::= statement_list:sl statement:s
-    {: 
-        // Só adiciona na árvore se o comando NÃO for nulo
-        if (s != null) {
-            sl.statements.add(s); 
-        }
-        RESULT = sl; 
-    :}
-    | statement:s
-    {: 
-        List<ASTNode> list = new ArrayList<>();
-        if (s != null) {
-            list.add(s);
-        }
-        RESULT = new BlockNode(list);
-    :}
-    | error
-    ;
-//statement = assign_stmt
-//          | if_stmt
-//          | while_stmt
-//          | print_stmt
-//          | read_stmt
-//          | block_stmt
-//          | null_stmt;
-statement ::= assign_stmt:a
-    {: 
-        RESULT = a; 
-    :}
-    | if_stmt:i
-    {: 
-        RESULT = i; 
-    :}
-    | while_stmt:w
-    {:
-        RESULT = w;
-    :}
-    | print_stmt:p
-    {: 
-        RESULT = p; 
-    :}
-    | read_stmt:r
-    {: 
-        RESULT = r; 
-    :}
-    | block_stmt:b
-    {: 
-        RESULT = b; 
-    :}
-    | null_stmt:n
-    {: 
-        RESULT = n; 
-    :}
-    ;
-// assign_stmt = ID,"=",expression,";";
-assign_stmt ::= ID:id ASSIGN expression:e SEMI
-    {:
-        RESULT = new AssignNode(id, e); 
-    :}
-    ;
-// if_stmt = "if","(",expression,")","then",block_stmt,["else",block_stmt];
-if_stmt ::= IF LPARAM expression:e RPARAM THEN block_stmt:tb
-    {: 
-        RESULT = new IfNode(e, tb, null); 
-    :}
-    | IF LPARAM expression:e RPARAM THEN block_stmt:tb ELSE block_stmt:eb
-    {: 
-        RESULT = new IfNode(e, tb, eb); 
-    :}
-    ;
-// while_stmt = "while","(",expression,")",block_stmt;
-while_stmt ::= WHILE LPARAM expression:e RPARAM block_stmt:b
-    {:
-        RESULT = new WhileNode(e, b); 
-    :}
-    ;
-// print_stmt = print,"(",expression,")",";";
-print_stmt ::= PRINT LPARAM expression:e RPARAM SEMI
-    {: 
-        RESULT = new PrintNode(e); 
-    :}
-    ;
-// read_stmt = read,"(",expression,")",";";
-read_stmt ::= READ LPARAM ID:id RPARAM SEMI
-    {:
-        RESULT = new ReadNode(id); 
-    :}
-    ;
-// block_stmt = "{",statement_list,"}";
-block_stmt ::= LBRACE statement_list:sl RBRACE
-    {: 
-        RESULT = sl; 
-    :}
-    | LBRACE RBRACE
-    {:
+// Regras da gramática que constroem a árvore sintática abstrata.
+//program = statement_list,EOF // Documenta informalmente a produção inicial.
+//    | EOF; // Registra que a entrada vazia também é aceita.
+program ::= statement_list:sl // Reconhece um programa composto por uma lista de comandos.
+    {: // Inicia a ação que armazena o programa reconhecido.
+        astRoot = sl; // Guarda a raiz do programa na variável do parser.
+        RESULT = sl; // Retorna a lista como valor da produção.
+    :} // Encerra a ação da lista de comandos.
+    | /* vazio (arquivo ou entrada 100% vazio) */ // Aceita um programa sem comandos.
+    {: // Inicia a ação para a entrada vazia.
+        BlockNode emptyRoot = new BlockNode(new ArrayList<>()); // Cria um bloco sem comandos.
+        astRoot = emptyRoot; // Armazena o bloco vazio como raiz da AST.
+        RESULT = emptyRoot; // Retorna o bloco vazio como resultado.
+    :} // Encerra a ação da produção vazia.
+    ; // Finaliza a produção do programa.
+// statement_list = statement,{statement}; // Resume a sequência de comandos.
+statement_list ::= statement_list:sl statement:s // Acrescenta um novo comando à lista existente.
+    {: // Inicia a ação de extensão da lista.
+        // Só adiciona na árvore se o comando NÃO for nulo.
+        if (s != null) { // Ignora comandos vazios representados por null.
+            sl.statements.add(s); // Adiciona o comando válido à lista.
+        } // Encerra a condição de inclusão.
+        RESULT = sl; // Retorna a lista atualizada.
+    :} // Encerra a ação de extensão.
+    | statement:s // Reconhece uma lista que contém apenas um comando.
+    {: // Inicia a ação que cria a lista inicial.
+        List<ASTNode> list = new ArrayList<>(); // Cria uma lista mutável de nós.
+        if (s != null) { // Verifica se o comando inicial não é vazio.
+            list.add(s); // Insere o comando na lista.
+        } // Encerra a verificação do comando inicial.
+        RESULT = new BlockNode(list); // Empacota a lista em um nó de bloco.
+    :} // Encerra a ação da lista unitária.
+    | error // Permite a recuperação do parser após um erro sintático.
+    ; // Finaliza a produção da lista de comandos.
+//statement = assign_stmt // Documenta a alternativa de atribuição.
+//          | if_stmt // Documenta a alternativa condicional.
+//          | while_stmt // Documenta a alternativa de repetição.
+//          | print_stmt // Documenta a alternativa de impressão.
+//          | read_stmt // Documenta a alternativa de leitura.
+//          | block_stmt // Documenta a alternativa de bloco.
+//          | null_stmt; // Documenta a alternativa de comando vazio.
+statement ::= assign_stmt:a // Reconhece uma atribuição como comando.
+    {: // Inicia a ação para comandos de atribuição.
+        RESULT = a; // Propaga o nó da atribuição.
+    :} // Encerra a ação de atribuição.
+    | if_stmt:i // Reconhece uma condição como comando.
+    {: // Inicia a ação para comandos condicionais.
+        RESULT = i; // Propaga o nó condicional.
+    :} // Encerra a ação condicional.
+    | while_stmt:w // Reconhece uma repetição como comando.
+    {: // Inicia a ação para comandos de repetição.
+        RESULT = w; // Propaga o nó de repetição.
+    :} // Encerra a ação de repetição.
+    | print_stmt:p // Reconhece uma impressão como comando.
+    {: // Inicia a ação para comandos de impressão.
+        RESULT = p; // Propaga o nó de impressão.
+    :} // Encerra a ação de impressão.
+    | read_stmt:r // Reconhece uma leitura como comando.
+    {: // Inicia a ação para comandos de leitura.
+        RESULT = r; // Propaga o nó de leitura.
+    :} // Encerra a ação de leitura.
+    | block_stmt:b // Reconhece um bloco como comando.
+    {: // Inicia a ação para blocos.
+        RESULT = b; // Propaga o nó do bloco.
+    :} // Encerra a ação de bloco.
+    | null_stmt:n // Reconhece um comando sem efeito.
+    {: // Inicia a ação para comandos vazios.
+        RESULT = n; // Propaga null para que a lista possa ignorá-lo.
+    :} // Encerra a ação de comando vazio.
+    ; // Finaliza a produção de comandos.
+// assign_stmt = ID,"=",expression,";"; // Documenta a sintaxe de atribuição.
+assign_stmt ::= ID:id ASSIGN expression:e SEMI // Reconhece uma atribuição terminada por ponto e vírgula.
+    {: // Inicia a ação para construir o nó de atribuição.
+        RESULT = new AssignNode(id, e); // Associa o identificador ao valor calculado.
+    :} // Encerra a ação de atribuição.
+    ; // Finaliza a produção de atribuição.
+// if_stmt = "if","(",expression,")","then",block_stmt,["else",block_stmt]; // Resume a sintaxe condicional.
+if_stmt ::= IF LPARAM expression:e RPARAM THEN block_stmt:tb // Reconhece um if sem alternativa else.
+    {: // Inicia a ação da condição sem else.
+        RESULT = new IfNode(e, tb, null); // Cria nó com condição, bloco verdadeiro e ausência de else.
+    :} // Encerra a ação do if sem else.
+    | IF LPARAM expression:e RPARAM THEN block_stmt:tb ELSE block_stmt:eb // Reconhece um if com else.
+    {: // Inicia a ação da condição com else.
+        RESULT = new IfNode(e, tb, eb); // Cria nó com condição e os dois blocos.
+    :} // Encerra a ação do if com else.
+    ; // Finaliza a produção condicional.
+// while_stmt = "while","(",expression,")",block_stmt; // Documenta a sintaxe de repetição.
+while_stmt ::= WHILE LPARAM expression:e RPARAM block_stmt:b // Reconhece um while com condição e bloco.
+    {: // Inicia a ação para construir o nó de repetição.
+        RESULT = new WhileNode(e, b); // Associa a condição ao bloco repetido.
+    :} // Encerra a ação de repetição.
+    ; // Finaliza a produção while.
+// print_stmt = print,"(",expression,")",";"; // Documenta a sintaxe de impressão.
+print_stmt ::= PRINT LPARAM expression:e RPARAM SEMI // Reconhece uma impressão com expressão.
+    {: // Inicia a ação para construir o nó de impressão.
+        RESULT = new PrintNode(e); // Define a expressão cujo valor será impresso.
+    :} // Encerra a ação de impressão.
+    ; // Finaliza a produção de impressão.
+// read_stmt = read,"(",expression,")",";"; // Documenta a sintaxe de leitura.
+read_stmt ::= READ LPARAM ID:id RPARAM SEMI // Reconhece uma leitura destinada a um identificador.
+    {: // Inicia a ação para construir o nó de leitura.
+        RESULT = new ReadNode(id); // Define a variável que receberá a entrada.
+    :} // Encerra a ação de leitura.
+    ; // Finaliza a produção de leitura.
+// block_stmt = "{",statement_list,"}"; // Documenta a sintaxe de bloco.
+block_stmt ::= LBRACE statement_list:sl RBRACE // Reconhece um bloco delimitado por chaves.
+    {: // Inicia a ação de retorno do bloco com comandos.
+        RESULT = sl; // Reutiliza a lista de comandos como nó do bloco.
+    :} // Encerra a ação do bloco não vazio.
+    | LBRACE RBRACE // Reconhece um bloco sem comandos.
+    {: // Inicia a ação para construir o bloco vazio.
         // Permite blocos vazios usados nos casos-limite do tradutor.
-        RESULT = new BlockNode(new ArrayList<>());
-    :}
-    ;
-// null_stmt = ";";
-null_stmt ::= SEMI
-    {: 
-        RESULT = null;
-    :}
-    ;
-// expression = expression,"==",expression;
-//          | expression,"+",expression;
-//          | expression,"-",expression;
-//          | expression,"*",expression;
-//          | expression,"/",expression;
-//          | expression,"%",expression;
-//          | expression,"!=",expression;
-//          | expression,">",expression;
-//          | expression,"<",expression;
-//          | expression,">=",expression;
-//          | expression,"<=",expression;
-//          | ID;
-//          | NUMBER;
-//          | "(" expression ")";
-//          | "-" expression;
-expression ::= 
-    expression:e1 EQ expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.EQ, e1, e2); 
-    :}
-    | expression:e1 PLUS expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.PLUS, e1, e2); 
-    :}
-    | expression:e1 MINUS expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.MINUS, e1, e2); 
-    :}
-    | expression:e1 TIMES expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.TIMES, e1, e2); 
-    :}
-    | expression:e1 DIV expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.DIV, e1, e2); 
-    :}
-    | expression:e1 MOD expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.MOD, e1, e2); 
-    :}
-    | expression:e1 NEQ expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.NEQ, e1, e2); 
-    :}
-    | expression:e1 GT expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.GT, e1, e2); 
-    :}
-    | expression:e1 LT expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.LT, e1, e2); 
-    :}
-    | expression:e1 GEQ expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.GEQ, e1, e2); 
-    :}
-    | expression:e1 LEQ expression:e2
-    {:
-        RESULT = new BinaryOpNode(sym.LEQ, e1, e2); 
-    :}
-    | ID:id
-    {: 
-        RESULT = new VariableNode(id); 
-    :}
-    | NUMBER:n
-    {: 
-        RESULT = new NumberNode(n);
-    :}
-    | LPARAM expression:e RPARAM
-    {:
-        RESULT = e; 
-    :}
-    | MINUS expression:e
-    {:
-        RESULT = new UnaryMinusNode(e); 
-    :} %prec UMINUS
-    ;
+        RESULT = new BlockNode(new ArrayList<>()); // Cria um nó de bloco sem comandos.
+    :} // Encerra a ação do bloco vazio.
+    ; // Finaliza a produção de blocos.
+// null_stmt = ";"; // Documenta a sintaxe de comando vazio.
+null_stmt ::= SEMI // Reconhece um ponto e vírgula isolado.
+    {: // Inicia a ação para representar o comando vazio.
+        RESULT = null; // Representa a instrução sem efeito com null.
+    :} // Encerra a ação do comando vazio.
+    ; // Finaliza a produção de comando vazio.
+// expression = expression,"==",expression; // Documenta expressões binárias de igualdade.
+//          | expression,"+",expression; // Documenta expressões binárias de soma.
+//          | expression,"-",expression; // Documenta expressões binárias de subtração.
+//          | expression,"*",expression; // Documenta expressões binárias de multiplicação.
+//          | expression,"/",expression; // Documenta expressões binárias de divisão.
+//          | expression,"%",expression; // Documenta expressões binárias de resto.
+//          | expression,"!=",expression; // Documenta expressões binárias de desigualdade.
+//          | expression,">",expression; // Documenta expressões binárias de maior que.
+//          | expression,"<",expression; // Documenta expressões binárias de menor que.
+//          | expression,">=",expression; // Documenta expressões binárias de maior ou igual.
+//          | expression,"<=",expression; // Documenta expressões binárias de menor ou igual.
+//          | ID; // Documenta identificadores como expressões.
+//          | NUMBER; // Documenta números como expressões.
+//          | "(" expression ")"; // Documenta expressões agrupadas por parênteses.
+//          | "-" expression; // Documenta expressões com menos unário.
+expression ::= // Inicia as alternativas de expressões válidas.
+    expression:e1 EQ expression:e2 // Reconhece comparação de igualdade.
+    {: // Inicia a ação para igualdade.
+        RESULT = new BinaryOpNode(sym.EQ, e1, e2); // Cria nó binário com operador de igualdade.
+    :} // Encerra a ação de igualdade.
+    | expression:e1 PLUS expression:e2 // Reconhece soma.
+    {: // Inicia a ação para soma.
+        RESULT = new BinaryOpNode(sym.PLUS, e1, e2); // Cria nó binário com operador de soma.
+    :} // Encerra a ação de soma.
+    | expression:e1 MINUS expression:e2 // Reconhece subtração.
+    {: // Inicia a ação para subtração.
+        RESULT = new BinaryOpNode(sym.MINUS, e1, e2); // Cria nó binário com operador de subtração.
+    :} // Encerra a ação de subtração.
+    | expression:e1 TIMES expression:e2 // Reconhece multiplicação.
+    {: // Inicia a ação para multiplicação.
+        RESULT = new BinaryOpNode(sym.TIMES, e1, e2); // Cria nó binário com operador de multiplicação.
+    :} // Encerra a ação de multiplicação.
+    | expression:e1 DIV expression:e2 // Reconhece divisão.
+    {: // Inicia a ação para divisão.
+        RESULT = new BinaryOpNode(sym.DIV, e1, e2); // Cria nó binário com operador de divisão.
+    :} // Encerra a ação de divisão.
+    | expression:e1 MOD expression:e2 // Reconhece resto da divisão.
+    {: // Inicia a ação para resto.
+        RESULT = new BinaryOpNode(sym.MOD, e1, e2); // Cria nó binário com operador de resto.
+    :} // Encerra a ação de resto.
+    | expression:e1 NEQ expression:e2 // Reconhece comparação de desigualdade.
+    {: // Inicia a ação para desigualdade.
+        RESULT = new BinaryOpNode(sym.NEQ, e1, e2); // Cria nó binário com operador de desigualdade.
+    :} // Encerra a ação de desigualdade.
+    | expression:e1 GT expression:e2 // Reconhece comparação de maior que.
+    {: // Inicia a ação para maior que.
+        RESULT = new BinaryOpNode(sym.GT, e1, e2); // Cria nó binário com operador maior que.
+    :} // Encerra a ação de maior que.
+    | expression:e1 LT expression:e2 // Reconhece comparação de menor que.
+    {: // Inicia a ação para menor que.
+        RESULT = new BinaryOpNode(sym.LT, e1, e2); // Cria nó binário com operador menor que.
+    :} // Encerra a ação de menor que.
+    | expression:e1 GEQ expression:e2 // Reconhece comparação de maior ou igual.
+    {: // Inicia a ação para maior ou igual.
+        RESULT = new BinaryOpNode(sym.GEQ, e1, e2); // Cria nó binário com operador maior ou igual.
+    :} // Encerra a ação de maior ou igual.
+    | expression:e1 LEQ expression:e2 // Reconhece comparação de menor ou igual.
+    {: // Inicia a ação para menor ou igual.
+        RESULT = new BinaryOpNode(sym.LEQ, e1, e2); // Cria nó binário com operador menor ou igual.
+    :} // Encerra a ação de menor ou igual.
+    | ID:id // Reconhece um identificador usado como expressão.
+    {: // Inicia a ação para criar uma variável.
+        RESULT = new VariableNode(id); // Cria o nó que referencia o identificador.
+    :} // Encerra a ação do identificador.
+    | NUMBER:n // Reconhece um literal numérico.
+    {: // Inicia a ação para criar um literal numérico.
+        RESULT = new NumberNode(n); // Cria o nó com o valor numérico.
+    :} // Encerra a ação do número.
+    | LPARAM expression:e RPARAM // Reconhece uma expressão agrupada.
+    {: // Inicia a ação para expressões entre parênteses.
+        RESULT = e; // Propaga o resultado da expressão interna.
+    :} // Encerra a ação de agrupamento.
+    | MINUS expression:e // Reconhece o operador menos unário.
+    {: // Inicia a ação para a negação aritmética.
+        RESULT = new UnaryMinusNode(e); // Cria o nó que inverte o sinal da expressão.
+    :} %prec UMINUS // Aplica a precedência declarada para o menos unário.
+    ; // Finaliza todas as alternativas de expressão.
